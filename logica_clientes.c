@@ -22,6 +22,8 @@ void handle_client(int client_socket) {
     // Analizar la solicitud HTTP
     sscanf(buffer, "%s %s %s", method, path, version);
 
+    printf("Solicitud recibida: %s\n", buffer);
+
     if (strcmp(method, "GET") == 0 || strcmp(method, "HEAD") == 0) {
         char full_path[512] = ".";
         strcat(full_path, path);//me combina dos cadenas para hacer referencia a esta carpeta con el punto
@@ -30,21 +32,29 @@ void handle_client(int client_socket) {
 
         int file = open(full_path, O_RDONLY);
         if (file != -1) {
-            const char *mime_type = get_mime_type(full_path);
-            char header[128];
+            struct stat file_stat;
+            if (stat(full_path, &file_stat) == 0) {
+                const char *mime_type = get_mime_type(full_path);
+                char header[128];
 
-            snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n", mime_type);
-            write(client_socket, header, strlen(header));
+                snprintf(header, sizeof(header),
+                         "HTTP/1.1 200 OK\r\n"
+                         "Content-Type: %s\r\n"
+                         "Content-Length: %ld\r\n"
+                         "\r\n",
+                         mime_type, file_stat.st_size);
+                write(client_socket, header, strlen(header));
 
-            if (strcmp(method, "GET") == 0) {
-                char content[1024];
-                ssize_t bytes_read;
+                if (strcmp(method, "GET") == 0) {
+                    char content[1024];
+                    ssize_t bytes_read;
 
-                // Leer el archivo y enviarlo al cliente
-                while ((bytes_read = read(file, content, sizeof(content))) > 0) {
-                    write(client_socket, content, bytes_read);
+                    // Leer el archivo y enviarlo al cliente
+                    while ((bytes_read = read(file, content, sizeof(content))) > 0) {
+                        write(client_socket, content, bytes_read);
+                    }
                 }
-            }
+            }    
             close(file);
         } else {
             write(client_socket, "HTTP/1.1 404 Not Found\r\n", 24);
