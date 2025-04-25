@@ -16,7 +16,7 @@ const char *get_mime_type(const char *path) {
 void handle_client(int client_socket) {
     char buffer[1024];
     char method[16], path[256], version[16];
-
+    //lee la peticion del cliente
     read(client_socket, buffer, sizeof(buffer) - 1);
     
     // Analizar la solicitud HTTP
@@ -29,12 +29,13 @@ void handle_client(int client_socket) {
         strcat(full_path, path);//me combina dos cadenas para hacer referencia a esta carpeta con el punto
         
         printf("Cliente solicitó: %s\n", full_path); // Mensaje en consola
-
+        //abrir archivo especificado 
         int file = open(full_path, O_RDONLY);
         if (file != -1) {
             struct stat file_stat;
-            if (stat(full_path, &file_stat) == 0) {
-                const char *mime_type = get_mime_type(full_path);
+            
+            if (stat(full_path, &file_stat) == 0) {//obtiene la longitud del archivo a enviar 
+                const char *mime_type = get_mime_type(full_path);//saco el mime type
                 char header[128];
 
                 snprintf(header, sizeof(header),
@@ -57,11 +58,13 @@ void handle_client(int client_socket) {
             }    
             close(file);
         } else {
+            //en caso de encontrar el archivo me envia el mensaje de error
             write(client_socket, "HTTP/1.1 404 Not Found\r\n", 24);
             write(client_socket, "Content-Type: text/html\r\n\r\n", 27);
             write(client_socket, "<html><body><h1>404 Not Found</h1></body></html>", 46);
         }
     } else {
+        //en caso de que no se head o get me envia el mensaje de error
         write(client_socket, "HTTP/1.1 501 Not Implemented\r\n", 30);
         write(client_socket, "Content-Type: text/html\r\n\r\n", 27);
         write(client_socket, "<html><body><h1>501 Not Implemented</h1></body></html>", 54);
@@ -74,7 +77,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Uso: %s <client_socket>\n", argv[0]);
         return 1;
     }
-
+    //convierte el argumento pasado en numero que en este caso es el descriptor de archivo del socket  
     int client_socket = atoi(argv[1]);
     handle_client(client_socket);
 

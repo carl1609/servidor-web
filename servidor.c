@@ -25,7 +25,7 @@ int main() {
         perror("Error creando el socket del servidor\n");
         return 1;
     }
-
+    //configuro el servidor 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
